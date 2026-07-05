@@ -87,10 +87,7 @@ def _auto_refresh(symbol: str, interval: str, api_key: str) -> None:
 
 
 def main() -> None:
-    # Performance: inject heavy CSS once per browser session.
-    if not st.session_state.get("_global_styles_injected"):
-        inject_global_styles(dark_mode=True, project_root=ROOT, hide_sidebar=True)
-        st.session_state["_global_styles_injected"] = True
+    inject_global_styles(dark_mode=True, project_root=ROOT, hide_sidebar=True)
 
     if not render_login_gate(project_root=ROOT):
         return

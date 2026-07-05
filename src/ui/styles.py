@@ -1005,6 +1005,15 @@ def inject_global_styles(
 
         #MainMenu {{ visibility: hidden; }}
         footer {{ visibility: hidden; }}
+        /* Hide Streamlit Deploy button in the top header */
+        [data-testid="stDeployButton"],
+        .stAppDeployButton {{
+            display: none !important;
+            visibility: hidden !important;
+        }}
+        [data-testid="stHeader"] {{
+            background: transparent !important;
+        }}
 
         @media (max-width: 768px) {{
             .premium-nav__inner {{
@@ -1227,26 +1236,27 @@ def inject_global_styles(
             justify-content: center;
             margin: 1rem 0 1.25rem;
         }}
-        .login-gate__panel {{
-            text-align: center;
-            width: 100%;
-            max-width: 28rem;
-            padding: clamp(1.25rem, 4vw, 2rem) !important;
+        /* Hide legacy login title panel / st.html white sandbox if it still appears */
+        .login-gate__panel,
+        .login-gate__title,
+        .login-gate__subtitle,
+        .login-gate__product,
+        [data-testid="stHtml"]:empty {{
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            max-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            border: none !important;
+            background: transparent !important;
         }}
-        .login-gate__title {{
-            font-size: 1.35rem;
-            font-weight: 700;
-            color: var(--text);
-            margin: 0.75rem 0 0.35rem;
+        [data-testid="stHtml"] {{
+            background: transparent !important;
         }}
-        .login-gate__subtitle {{
-            font-size: 0.9375rem;
-            color: var(--text-secondary);
-            margin: 0 0 0.5rem;
-        }}
-        .login-gate__panel .chart-bitcoin-logo__svg {{
-            width: 96px;
-            height: 96px;
+        [data-testid="stHtml"] iframe {{
+            background: transparent !important;
         }}
         .login-gate--below {{
             display: flex;
@@ -1254,6 +1264,16 @@ def inject_global_styles(
             align-items: center;
             width: 100%;
             margin: 2rem auto 1rem;
+        }}
+        .chart-bitcoin-logo--login {{
+            display: flex;
+            justify-content: center;
+            margin: 2rem auto 1rem;
+        }}
+        .chart-bitcoin-logo--login .chart-bitcoin-logo__svg {{
+            width: 220px;
+            height: 220px;
+            filter: drop-shadow(0 12px 32px rgba(247, 147, 26, 0.5));
         }}
         .login-gate--below .chart-bitcoin-logo {{
             margin: 0;
@@ -1293,9 +1313,9 @@ def inject_global_styles(
         }}
         .login-purchase__wallet-block {{
             margin: 0.75rem 0;
-            padding: 0.75rem 0.875rem;
-            background: rgba(8, 6, 4, 0.55);
-            border: 1px solid rgba(247, 147, 26, 0.22);
+            padding: 0.875rem 1rem;
+            background: #ffffff !important;
+            border: 2px solid #f7931a;
             border-radius: var(--radius-sm);
         }}
         .login-purchase__label {{
@@ -1304,17 +1324,21 @@ def inject_global_styles(
             font-weight: 700;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: var(--text-muted);
-            margin-bottom: 0.35rem;
+            color: #5c3d1e !important;
+            margin-bottom: 0.5rem;
         }}
-        .login-purchase__wallet {{
+        .login-purchase__wallet,
+        .login-purchase__wallet-block code {{
             display: block;
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-            font-size: clamp(0.75rem, 2.2vw, 0.875rem);
-            font-weight: 600;
-            color: var(--text);
+            font-size: clamp(0.8125rem, 2.4vw, 0.9375rem);
+            font-weight: 700;
+            color: #000000 !important;
+            -webkit-text-fill-color: #000000 !important;
+            background: transparent !important;
             word-break: break-all;
-            line-height: 1.45;
+            line-height: 1.5;
+            user-select: all;
         }}
         .login-purchase__email {{
             color: var(--accent);

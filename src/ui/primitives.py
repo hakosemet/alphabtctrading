@@ -65,15 +65,18 @@ def section_heading(text: str, *, tight: bool = False, large: bool = False) -> s
 
 def bitcoin_chart_logo(*, placement: str = "below") -> str:
     """Centered Bitcoin logo shown near the live chart."""
-    modifier = " chart-bitcoin-logo--above" if placement == "above" else " chart-bitcoin-logo--below"
-    return f"""
-    <div class="chart-bitcoin-logo{modifier}" aria-label="Bitcoin">
+    modifiers = {
+        "above": " chart-bitcoin-logo--above",
+        "below": " chart-bitcoin-logo--below",
+        "login": " chart-bitcoin-logo--login",
+    }
+    modifier = modifiers.get(placement, " chart-bitcoin-logo--below")
+    return f"""<div class="chart-bitcoin-logo{modifier}" aria-label="Bitcoin">
         <svg class="chart-bitcoin-logo__svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img">
             <circle cx="32" cy="32" r="32" fill="#F7931A"/>
             <path fill="#FFFFFF" d="M46.1,27.4c0.7-4.7-2.9-7.2-7.8-8.9l1.6-6.3l-3.8-0.9l-1.5,6.1c-1-0.3-2-0.5-3-0.8l1.5-6.1l-3.8-0.9l-1.6,6.3c-0.8-0.2-1.6-0.4-2.4-0.6v-0.1l-5.2-1.3l-1,4.1c0,0-2.9,0.7-2.8,0.8c-1.7,0.4-2,1.4-1.9,2.3c0.1,0.6,0.8,4,0.8,4s-0.6,1.7-1.2,2.7c-1,1.4-2.8,2.5-2.8,2.5s2.1,1,2,1c-1.4,3.7-2.7,7.3-2.7,7.3s2.9,0.7,2.9,0.7l-1.6,6.3l3.8,0.9l1.6-6.3c1,0.3,2.1,0.5,3.1,0.8l-1.6,6.2l3.8,0.9l1.6-6.3c6.5,1.2,11.4,0.7,13.5-5.2c1.7-4.7-0.1-7.5-3.5-9.4c2.5-0.6,4.4-2.3,5-5.7L46.1,27.4z M39.9,41.4c-1.2,4.8-9.3,2.2-12,1.6l2.1-8.5C32.4,35.3,41.2,36.6,39.9,41.4z M41.2,27.4c-1.1,4.5-8,2.3-10.3,1.7l1.9-7.6C35.2,22.1,42.4,23.2,41.2,27.4z"/>
         </svg>
-    </div>
-    """
+    </div>"""
 
 
 def bitcoin_chart_brand() -> str:
@@ -273,22 +276,25 @@ def prose_block(text: str) -> str:
     return f'<div class="card card--prose card--elevated">{html.escape(text)}</div>'
 
 
-def login_gate_shell(*, title: str = "AlphaBTC Access", subtitle: str = "Enter your password to continue") -> str:
+def login_gate_logo_only() -> str:
+    """Login header — Bitcoin logo only (no title/subtitle text)."""
     return f"""
     <div class="login-gate">
-        <div class="login-gate__panel card card--elevated">
-            <div class="card__accent"></div>
+        <div class="login-gate__panel login-gate__panel--logo-only">
             {bitcoin_chart_logo(placement="above")}
-            <h2 class="login-gate__title">{html.escape(title)}</h2>
-            <p class="login-gate__subtitle">{html.escape(subtitle)}</p>
         </div>
     </div>
     """
 
 
+def login_gate_shell() -> str:
+    """Deprecated — kept for compatibility; logo only."""
+    return login_gate_logo_only()
+
+
 def login_purchase_panel() -> str:
     """Purchase instructions shown on the login screen."""
-    email = html.escape("NORISKNOGLORY@Outlook.co.il")
+    email = html.escape("AlphabtcTool@outlook.com")
     wallet = html.escape("1ME6L23cLzYu3iAEEjdwDVSE578P2mssDW")
     return f"""
     <div class="login-purchase card card--elevated">
@@ -298,7 +304,7 @@ def login_purchase_panel() -> str:
         <p class="login-purchase__line">Payment Method: <strong>Bitcoin (BTC) only.</strong></p>
         <div class="login-purchase__wallet-block">
             <span class="login-purchase__label">BTC Wallet:</span>
-            <code class="login-purchase__wallet">{wallet}</code>
+            <span class="login-purchase__wallet">{wallet}</span>
         </div>
         <p class="login-purchase__line">
             After payment, send a transaction screenshot to
