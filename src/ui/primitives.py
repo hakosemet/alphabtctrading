@@ -81,7 +81,7 @@ def bitcoin_chart_logo(*, placement: str = "below") -> str:
 
 def bitcoin_chart_brand() -> str:
     """Large Bitcoin symbol and name shown below the chart logo."""
-    email = html.escape("NORISKNOGLORY@Outlook.co.il")
+    email = html.escape("AlphabtcTool@outlook.com")
     return f"""
     <div class="chart-bitcoin-brand" aria-label="Bitcoin">
         <div class="chart-bitcoin-brand__symbol">₿</div>
