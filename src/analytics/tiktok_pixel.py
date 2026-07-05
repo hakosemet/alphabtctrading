@@ -24,8 +24,13 @@ _QUEUE_KEY = "_tiktok_event_queue"
 
 
 def get_pixel_id() -> str:
-    """Return the configured Pixel ID (.env overrides the constant above)."""
-    return os.getenv("TIKTOK_PIXEL_ID", TIKTOK_PIXEL_ID).strip()
+    """Return the configured Pixel ID (.env overrides the constant when non-placeholder)."""
+    env_val = os.getenv("TIKTOK_PIXEL_ID", "").strip()
+    if env_val and env_val not in _PLACEHOLDER_IDS:
+        return env_val
+    if TIKTOK_PIXEL_ID not in _PLACEHOLDER_IDS:
+        return TIKTOK_PIXEL_ID
+    return env_val or TIKTOK_PIXEL_ID
 
 
 def is_pixel_enabled() -> bool:
@@ -115,6 +120,7 @@ def inject_tiktok_pixel(
     events_json = json.dumps(queued_events)
     attach_js = "true" if attach_purchase_listeners else "false"
 
+    # streamlit.components.v1.html — official TikTok base pixel + ttq.page() PageView
     components.html(
         f"""
 <!DOCTYPE html>
