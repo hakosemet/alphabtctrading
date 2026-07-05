@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.analysis.scorer import MarketAnalyzer
+from src.ui.performance import run_cached_market_analysis
 from src.ui.auth import render_login_gate
 from src.ui.components import (
     render_dashboard,
@@ -39,12 +39,8 @@ def _get_last_updated() -> datetime | None:
 
 
 def _run_analysis(symbol: str, interval: str, api_key: str) -> None:
-    analyzer = MarketAnalyzer(
-        symbol=symbol,
-        interval=interval,
-        coinglass_api_key=api_key or None,
-    )
-    st.session_state["last_result"] = analyzer.analyze()
+    # Performance: Streamlit cache skips duplicate Binance / enrichment calls on reruns.
+    st.session_state["last_result"] = run_cached_market_analysis(symbol, interval, api_key or "")
     st.session_state["last_updated"] = datetime.now(timezone.utc)
 
 
@@ -91,7 +87,10 @@ def _auto_refresh(symbol: str, interval: str, api_key: str) -> None:
 
 
 def main() -> None:
-    inject_global_styles(dark_mode=True, project_root=ROOT, hide_sidebar=True)
+    # Performance: inject heavy CSS once per browser session.
+    if not st.session_state.get("_global_styles_injected"):
+        inject_global_styles(dark_mode=True, project_root=ROOT, hide_sidebar=True)
+        st.session_state["_global_styles_injected"] = True
 
     if not render_login_gate(project_root=ROOT):
         return
@@ -113,7 +112,6 @@ def main() -> None:
                 render_error_state(str(exc))
                 st.markdown("</div>", unsafe_allow_html=True)
                 return
-        st.rerun()
 
     st.session_state["chart_interval"] = "1m"
     render_dashboard(

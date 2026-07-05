@@ -1263,6 +1263,75 @@ def inject_global_styles(
             height: 220px;
             filter: drop-shadow(0 12px 32px rgba(247, 147, 26, 0.5));
         }}
+        .login-purchase {{
+            width: 100%;
+            max-width: 28rem;
+            margin: 1.25rem auto 0;
+            padding: clamp(1.125rem, 3vw, 1.5rem) !important;
+            text-align: left;
+        }}
+        .login-purchase__title {{
+            font-size: clamp(1.05rem, 2.8vw, 1.25rem);
+            font-weight: 800;
+            color: var(--text);
+            margin: 0 0 0.75rem;
+            letter-spacing: 0.02em;
+        }}
+        .login-purchase__price {{
+            font-size: 1.0625rem;
+            color: var(--accent);
+            margin: 0 0 0.5rem;
+        }}
+        .login-purchase__price strong {{
+            font-weight: 800;
+        }}
+        .login-purchase__line {{
+            font-size: 0.9375rem;
+            line-height: 1.55;
+            color: var(--text-secondary);
+            margin: 0 0 0.625rem;
+        }}
+        .login-purchase__wallet-block {{
+            margin: 0.75rem 0;
+            padding: 0.75rem 0.875rem;
+            background: rgba(8, 6, 4, 0.55);
+            border: 1px solid rgba(247, 147, 26, 0.22);
+            border-radius: var(--radius-sm);
+        }}
+        .login-purchase__label {{
+            display: block;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }}
+        .login-purchase__wallet {{
+            display: block;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: clamp(0.75rem, 2.2vw, 0.875rem);
+            font-weight: 600;
+            color: var(--text);
+            word-break: break-all;
+            line-height: 1.45;
+        }}
+        .login-purchase__email {{
+            color: var(--accent);
+            font-weight: 600;
+            text-decoration: none;
+        }}
+        .login-purchase__email:hover {{
+            text-decoration: underline;
+        }}
+        .login-purchase__note {{
+            font-size: 0.875rem;
+            line-height: 1.55;
+            color: var(--text-muted);
+            margin: 0.75rem 0 0;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(247, 147, 26, 0.14);
+        }}
         {'''
         [data-testid="stTextInput"] input {{
             min-height: 3.75rem !important;

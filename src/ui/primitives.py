@@ -286,6 +286,31 @@ def login_gate_shell(*, title: str = "AlphaBTC Access", subtitle: str = "Enter y
     """
 
 
+def login_purchase_panel() -> str:
+    """Purchase instructions shown on the login screen."""
+    email = html.escape("NORISKNOGLORY@Outlook.co.il")
+    wallet = html.escape("1ME6L23cLzYu3iAEEjdwDVSE578P2mssDW")
+    return f"""
+    <div class="login-purchase card card--elevated">
+        <div class="card__accent"></div>
+        <h3 class="login-purchase__title">Purchase Alpha BTC Trading Tool</h3>
+        <p class="login-purchase__price">Price: <strong>$99 USD</strong></p>
+        <p class="login-purchase__line">Payment Method: <strong>Bitcoin (BTC) only.</strong></p>
+        <div class="login-purchase__wallet-block">
+            <span class="login-purchase__label">BTC Wallet:</span>
+            <code class="login-purchase__wallet">{wallet}</code>
+        </div>
+        <p class="login-purchase__line">
+            After payment, send a transaction screenshot to
+            <a class="login-purchase__email" href="mailto:{email}">{email}</a>.
+        </p>
+        <p class="login-purchase__note">
+            Your access credentials will be sent within 12 hours after payment verification.
+        </p>
+    </div>
+    """
+
+
 def brand_footer(*, sources: str) -> str:
     return f"""
     <footer class="brand-footer card card--elevated">

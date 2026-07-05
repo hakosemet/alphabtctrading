@@ -13,10 +13,7 @@ from src.analysis.risk_manager import (
     compute_risk_profile,
     compute_take_profits,
 )
-from src.data.fear_greed import FearGreedClient
-from src.data.news_client import NewsClient
-from src.data.onchain_client import OnChainClient
-from src.data.whale_client import WhaleClient
+from src.data.feed_cache import fetch_enrichment_feeds_parallel
 from src.ui.theme import BRAND, confidence_percent
 
 
@@ -30,15 +27,16 @@ def enrich_analysis(
     coinglass_enabled: bool = False,
 ) -> AnalysisResult:
     """Attach dashboard insights without changing core recommendation logic."""
-    try:
-        fear_data, fear_info = FearGreedClient().fetch()
-        news_data, news_info = NewsClient().fetch()
-        onchain_data, onchain_info = OnChainClient().fetch()
-        whale_data, whale_info = WhaleClient().fetch()
-    except Exception as exc:
-        result.enhanced_explanation = result.explanation
-        result.insights = None
-        return result
+    # Performance: parallel + TTL-cached enrichment feeds (Fear/Greed, news, on-chain, whales).
+    feeds = fetch_enrichment_feeds_parallel()
+    fear_data = feeds["fear_data"]
+    fear_info = feeds["fear_info"]
+    news_data = feeds["news_data"]
+    news_info = feeds["news_info"]
+    onchain_data = feeds["onchain_data"]
+    onchain_info = feeds["onchain_info"]
+    whale_data = feeds["whale_data"]
+    whale_info = feeds["whale_info"]
 
     market_status = _market_status(result, candles)
     trade_quality = _trade_quality(result)
@@ -274,13 +272,18 @@ def _build_source_status(
     hub_sources = (result.hub or {}).get("source_status") or {}
     binance_status = "online" if "Binance" in (result.data_sources or []) else hub_sources.get("Binance", {}).get("status", "offline")
 
+    def _status(info) -> str:
+        if info is None:
+            return "offline"
+        return getattr(info, "status", "offline")
+
     return {
         "Binance": binance_status,
         "Coinglass": "online" if coinglass_enabled else hub_sources.get("Coinglass", {}).get("status", "offline"),
-        "Fear & Greed": fear_info.status,
-        "News RSS": news_info.status,
-        "On-chain": onchain_info.status,
-        "Whale data": whale_info.status,
+        "Fear & Greed": _status(fear_info),
+        "News RSS": _status(news_info),
+        "On-chain": _status(onchain_info),
+        "Whale data": _status(whale_info),
     }
 
 

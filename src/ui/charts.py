@@ -14,9 +14,12 @@ if TYPE_CHECKING:
 
 _GAUGE_HEIGHT = 360
 _HEATMAP_HEIGHT = 400
+_VOLUME_HEIGHT = 280
 
 
-def render_score_gauge(score: float, *, dark: bool = False) -> None:
+@st.cache_data(show_spinner=False)
+def _build_score_gauge_figure(score: float, dark: bool) -> go.Figure:
+    """Performance: cache Plotly gauge figure — score only changes on refresh."""
     palette = get_palette(dark)
     fig = go.Figure(
         go.Indicator(
@@ -46,6 +49,33 @@ def render_score_gauge(score: float, *, dark: bool = False) -> None:
     layout = chart_layout(palette)
     layout["margin"] = {"l": 24, "r": 24, "t": 56, "b": 36}
     fig.update_layout(height=_GAUGE_HEIGHT, **layout)
+    return fig
+
+
+@st.cache_data(show_spinner=False)
+def _build_volume_chart_figure(volumes: tuple[float, ...], dark: bool) -> go.Figure:
+    """Performance: cache volume bar chart for unchanged candle history."""
+    palette = get_palette(dark)
+    fig = go.Figure(
+        go.Bar(
+            x=list(range(1, len(volumes) + 1)),
+            y=list(volumes),
+            marker=dict(color=palette["accent"], opacity=0.85),
+            hovertemplate="Bar %{x}<br>Volume: %{y:,.2f} BTC<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        height=_VOLUME_HEIGHT,
+        title=dict(text="BTC Volume (last candles)", font=dict(size=12, color=palette["text_muted"])),
+        xaxis_title="Candle",
+        yaxis_title="Volume (BTC)",
+        **chart_layout(palette),
+    )
+    return fig
+
+
+def render_score_gauge(score: float, *, dark: bool = False) -> None:
+    fig = _build_score_gauge_figure(score, dark)
     st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
 
 
@@ -97,20 +127,5 @@ def render_volume_chart(volumes: list[float], *, dark: bool = False) -> None:
     if not volumes:
         return
 
-    palette = get_palette(dark)
-    fig = go.Figure(
-        go.Bar(
-            x=list(range(1, len(volumes) + 1)),
-            y=volumes,
-            marker=dict(color=palette["accent"], opacity=0.85),
-            hovertemplate="Bar %{x}<br>Volume: %{y:,.2f} BTC<extra></extra>",
-        )
-    )
-    fig.update_layout(
-        height=280,
-        title=dict(text="BTC Volume (last candles)", font=dict(size=12, color=palette["text_muted"])),
-        xaxis_title="Candle",
-        yaxis_title="Volume (BTC)",
-        **chart_layout(palette),
-    )
+    fig = _build_volume_chart_figure(tuple(volumes), dark)
     st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)

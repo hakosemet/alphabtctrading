@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from typing import Any
 
@@ -209,46 +210,56 @@ class BitcoinDataHub:
             snapshot.sources.append("Coinglass")
 
     def _fetch_alt_exchanges(self, snapshot: HubSnapshot) -> None:
-        for connector in self.alt_connectors:
+        # Performance: query alternative exchanges in parallel instead of sequentially.
+        def _load_connector(connector):
             try:
                 bundle = connector.fetch_market_bundle()
+                return connector, bundle, None
             except Exception as exc:
+                return connector, None, exc
+
+        max_workers = min(8, max(1, len(self.alt_connectors)))
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="hub-alt") as pool:
+            futures = [pool.submit(_load_connector, connector) for connector in self.alt_connectors]
+            for future in as_completed(futures):
+                connector, bundle, error = future.result()
+                if error is not None or bundle is None:
+                    snapshot.source_status[connector.name] = SourceInfo(
+                        name=connector.name,
+                        status="offline",
+                        error=str(error),
+                    )
+                    continue
+
+                snapshot.exchange_snapshots[connector.name] = {
+                    "price": bundle.get("price"),
+                    "funding_rate": bundle.get("funding_rate"),
+                    "open_interest": bundle.get("open_interest"),
+                    "errors": bundle.get("errors") or [],
+                }
+
+                errors = bundle.get("errors") or []
+                fields = [
+                    field
+                    for field in ("price", "funding_rate", "open_interest")
+                    if bundle.get(field) is not None
+                ]
+                if bundle.get("price") is None:
+                    status = "offline"
+                elif errors:
+                    status = "degraded"
+                else:
+                    status = "online"
+
                 snapshot.source_status[connector.name] = SourceInfo(
                     name=connector.name,
-                    status="offline",
-                    error=str(exc),
+                    status=status,  # type: ignore[arg-type]
+                    last_updated=datetime.now(timezone.utc) if bundle.get("price") is not None else None,
+                    error="; ".join(errors) if errors else None,
+                    fields=fields,
                 )
-                continue
-
-            snapshot.exchange_snapshots[connector.name] = {
-                "price": bundle.get("price"),
-                "funding_rate": bundle.get("funding_rate"),
-                "open_interest": bundle.get("open_interest"),
-                "errors": bundle.get("errors") or [],
-            }
-
-            errors = bundle.get("errors") or []
-            fields = [
-                field
-                for field in ("price", "funding_rate", "open_interest")
-                if bundle.get(field) is not None
-            ]
-            if bundle.get("price") is None:
-                status = "offline"
-            elif errors:
-                status = "degraded"
-            else:
-                status = "online"
-
-            snapshot.source_status[connector.name] = SourceInfo(
-                name=connector.name,
-                status=status,  # type: ignore[arg-type]
-                last_updated=datetime.now(timezone.utc) if bundle.get("price") is not None else None,
-                error="; ".join(errors) if errors else None,
-                fields=fields,
-            )
-            if bundle.get("price") is not None and connector.name not in snapshot.sources:
-                snapshot.sources.append(connector.name)
+                if bundle.get("price") is not None and connector.name not in snapshot.sources:
+                    snapshot.sources.append(connector.name)
 
         snapshot.cross_exchange = build_cross_exchange_summary(
             snapshot.exchange_snapshots,

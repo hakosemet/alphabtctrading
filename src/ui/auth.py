@@ -9,7 +9,7 @@ from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
 
-from src.ui.primitives import bitcoin_chart_logo, login_gate_shell
+from src.ui.primitives import bitcoin_chart_logo, login_gate_shell, login_purchase_panel
 
 ROOT = Path(__file__).resolve().parents[2]
 _SESSION_KEY = "authenticated"
@@ -58,8 +58,14 @@ def render_login_gate(*, project_root: Path) -> bool:
         if submitted:
             if secrets.compare_digest(password, expected):
                 st.session_state[_SESSION_KEY] = True
+                # Performance: fresh analysis after login (cache may predate auth).
+                from src.ui.performance import clear_analysis_cache
+
+                clear_analysis_cache()
                 st.rerun()
             st.error("Incorrect password. Please try again.")
+
+        st.markdown(login_purchase_panel(), unsafe_allow_html=True)
 
     _render_login_logo_below()
 
