@@ -14,6 +14,7 @@ from src.ui.primitives import (
     brand_footer,
     checklist_panel,
     component_card,
+    empty_state,
     market_signal_hero,
     metric_card,
     metric_card_wrap,
@@ -106,19 +107,52 @@ def render_overview_tab(result: AnalysisResult, *, dark: bool) -> None:
 
 def render_trade_setup_tab(result: AnalysisResult, *, dark: bool) -> None:
     setup = result.trade_setup or {}
-    direction = setup.get("direction") or result.recommendation
-    if direction not in ("long", "short"):
-        direction = "long" if result.score >= 50 else "short"
-    style = RECOMMENDATION_STYLE[direction]
+    entry = float(setup.get("entry") or result.price or 0)
 
     _panel_open()
     st.markdown(section_heading("Trade Setup"), unsafe_allow_html=True)
+
+    if entry <= 0:
+        st.markdown(
+            empty_state(
+                title="Market data unavailable",
+                description=(
+                    "Price and candle data could not be loaded from this server. "
+                    "This often happens when Binance blocks cloud hosting IPs. "
+                    "Check Overview → Connected Sources, then redeploy after updating environment variables."
+                ),
+            ),
+            unsafe_allow_html=True,
+        )
+        _panel_close()
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    direction = setup.get("direction") or result.recommendation
+    if direction not in ("long", "short"):
+        if result.recommendation in ("long", "short"):
+            direction = result.recommendation
+        else:
+            direction = "wait"
+    if direction == "wait":
+        st.markdown(
+            empty_state(
+                title="No active trade setup",
+                description="The market signal is WAIT — levels appear when a directional setup is available.",
+            ),
+            unsafe_allow_html=True,
+        )
+        _panel_close()
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    style = RECOMMENDATION_STYLE[direction]
 
     tp_tone = "long" if direction == "long" else "short"
     sl_tone = "short" if direction == "long" else "long"
     _render_metric_row([
         metric_card("Direction", style["label"], tone=style["tone"]),
-        metric_card("Entry", f"${setup.get('entry', result.price):,.2f}"),
+        metric_card("Entry", f"${entry:,.2f}"),
         metric_card("Stop Loss", f"${setup.get('stop_loss', 0):,.2f}", tone=sl_tone),
         metric_card("TP1", f"${setup.get('tp1', 0):,.2f}", tone=tp_tone),
     ], columns=4)

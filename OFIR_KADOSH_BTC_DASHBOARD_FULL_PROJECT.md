@@ -1,8 +1,8 @@
 # Ofir Kadosh Bitcoin AI Dashboard — Full Project (Single File Backup)
 
-Generated: 2026-07-05 14:40:06 UTC
+Generated: 2026-07-05 15:26:24 UTC
 Root: `C:\Users\NORIS\btc-market-analyzer`
-Files: 60
+Files: 61
 
 Restore: run `python restore_from_backup.py` or copy each section back to the matching path.
 
@@ -44,6 +44,7 @@ Restore: run `python restore_from_backup.py` or copy each section back to the ma
 - [src\data\connectors\okx.py](#file-src-data-connectors-okx-py)
 - [src\data\data_hub.py](#file-src-data-data_hub-py)
 - [src\data\exchange_api.py](#file-src-data-exchange_api-py)
+- [src\data\fallback_market.py](#file-src-data-fallback_market-py)
 - [src\data\fear_greed.py](#file-src-data-fear_greed-py)
 - [src\data\feed_cache.py](#file-src-data-feed_cache-py)
 - [src\data\hub_models.py](#file-src-data-hub_models-py)
@@ -3157,6 +3158,7 @@ from src.data.connectors import (
 from src.data.hub_models import HubSnapshot, SourceInfo
 from src.data.news_sentiment import NewsSentimentProvider
 from src.data.onchain import OnChainProvider
+from src.data.fallback_market import fetch_fallback_klines, pick_fallback_price
 from src.indicators.technical import parse_coinglass_heatmap
 
 TRACKED_FIELDS = [
@@ -3212,6 +3214,7 @@ class BitcoinDataHub:
         self._fetch_binance(snapshot, interval=interval, limit=limit)
         self._fetch_coinglass(snapshot, interval=interval)
         self._fetch_alt_exchanges(snapshot)
+        self._apply_market_fallback(snapshot, interval=interval, limit=limit)
         self._fetch_onchain(snapshot)
         self._fetch_news_sentiment(snapshot)
         self._finalize_snapshot(snapshot)
@@ -3398,6 +3401,50 @@ class BitcoinDataHub:
             snapshot.exchange_snapshots,
             reference_price=float(snapshot.price or 0),
         )
+
+    def _apply_market_fallback(self, snapshot: HubSnapshot, *, interval: str, limit: int) -> None:
+        """Backfill price/candles from alt exchanges when Binance is blocked on cloud hosts."""
+        needs_price = snapshot.price is None or float(snapshot.price or 0) <= 0
+        candles = snapshot.candles
+        needs_candles = candles is None or (isinstance(candles, pd.DataFrame) and candles.empty)
+        if not needs_price and not needs_candles:
+            return
+
+        if needs_price:
+            price, source = pick_fallback_price(snapshot.exchange_snapshots)
+            if price is not None:
+                snapshot.price = price
+                if source and source not in snapshot.sources:
+                    snapshot.sources.append(source)
+
+        if needs_candles:
+            df, source = fetch_fallback_klines(interval=interval, limit=limit, timeout=float(self.timeout))
+            if df is not None and not df.empty:
+                snapshot.candles = df
+                snapshot.volume = float(df.iloc[-1]["volume"])
+                if snapshot.price is None or float(snapshot.price or 0) <= 0:
+                    snapshot.price = float(df.iloc[-1]["close"])
+                if source:
+                    if source not in snapshot.sources:
+                        snapshot.sources.append(source)
+                    snapshot.source_status[source] = SourceInfo(
+                        name=source,
+                        status="online",
+                        last_updated=datetime.now(timezone.utc),
+                        error="Candle fallback — Binance unreachable from this host",
+                        fields=["price", "candles", "volume"],
+                    )
+
+        if needs_price and snapshot.price is not None and float(snapshot.price) > 0:
+            binance_info = snapshot.source_status.get(self.binance.name)
+            if binance_info and binance_info.status == "offline":
+                snapshot.source_status[self.binance.name] = SourceInfo(
+                    name=self.binance.name,
+                    status="offline",
+                    last_updated=binance_info.last_updated,
+                    error=(binance_info.error or "Unreachable") + " — using alt-exchange fallback",
+                    fields=binance_info.fields,
+                )
 
     def _fetch_onchain(self, snapshot: HubSnapshot) -> None:
         try:
@@ -3687,6 +3734,161 @@ EXCHANGE_FETCHERS: dict[str, Callable[..., Bundle]] = {
     "Coinbase": fetch_coinbase,
     "Kraken": fetch_kraken,
 }
+```
+
+---
+
+<a id="file-src-data-fallback_market-py"></a>
+## File: `src\data\fallback_market.py`
+
+
+```python
+"""Fallback market data when Binance is unreachable (common on cloud hosts)."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import pandas as pd
+import requests
+
+_BYBIT_INTERVALS = {
+    "1m": "1",
+    "3m": "3",
+    "5m": "5",
+    "15m": "15",
+    "30m": "30",
+    "1h": "60",
+    "4h": "240",
+    "1d": "D",
+}
+
+_OKX_BARS = {
+    "1m": "1m",
+    "3m": "3m",
+    "5m": "5m",
+    "15m": "15m",
+    "30m": "30m",
+    "1h": "1H",
+    "4h": "4H",
+    "1d": "1D",
+}
+
+
+def _klines_dataframe(rows: list[list[Any]]) -> pd.DataFrame:
+    df = pd.DataFrame(
+        rows,
+        columns=[
+            "open_time",
+            "open",
+            "high",
+            "low",
+            "close",
+            "volume",
+            "quote_volume",
+        ],
+    )
+    numeric_cols = ["open", "high", "low", "close", "volume", "quote_volume"]
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df["open_time"] = pd.to_datetime(df["open_time"], unit="ms", utc=True)
+    df["close_time"] = df["open_time"]
+    df["trades"] = 0
+    df["taker_buy_base"] = 0.0
+    df["taker_buy_quote"] = 0.0
+    df["ignore"] = 0
+    return df
+
+
+def _fetch_bybit_klines(*, interval: str, limit: int, timeout: float) -> pd.DataFrame | None:
+    bybit_interval = _BYBIT_INTERVALS.get(interval)
+    if not bybit_interval:
+        return None
+
+    response = requests.get(
+        "https://api.bybit.com/v5/market/kline",
+        params={
+            "category": "spot",
+            "symbol": "BTCUSDT",
+            "interval": bybit_interval,
+            "limit": min(limit, 1000),
+        },
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    raw = (response.json().get("result") or {}).get("list") or []
+    if not raw:
+        return None
+
+    rows = [
+        [
+            int(row[0]),
+            row[1],
+            row[2],
+            row[3],
+            row[4],
+            row[5],
+            row[6] if len(row) > 6 else row[5],
+        ]
+        for row in reversed(raw)
+    ]
+    return _klines_dataframe(rows)
+
+
+def _fetch_okx_klines(*, interval: str, limit: int, timeout: float) -> pd.DataFrame | None:
+    bar = _OKX_BARS.get(interval)
+    if not bar:
+        return None
+
+    response = requests.get(
+        "https://www.okx.com/api/v5/market/candles",
+        params={"instId": "BTC-USDT", "bar": bar, "limit": min(limit, 300)},
+        timeout=timeout,
+    )
+    response.raise_for_status()
+    raw = response.json().get("data") or []
+    if not raw:
+        return None
+
+    rows = [
+        [
+            int(row[0]),
+            row[1],
+            row[2],
+            row[3],
+            row[4],
+            row[5],
+            row[6] if len(row) > 6 else row[5],
+        ]
+        for row in reversed(raw)
+    ]
+    return _klines_dataframe(rows)
+
+
+def fetch_fallback_klines(
+    *,
+    interval: str = "1m",
+    limit: int = 500,
+    timeout: float = 15.0,
+) -> tuple[pd.DataFrame | None, str | None]:
+    """Try Bybit then OKX for OHLCV when Binance is blocked."""
+    for name, fetcher in (("Bybit", _fetch_bybit_klines), ("OKX", _fetch_okx_klines)):
+        try:
+            df = fetcher(interval=interval, limit=limit, timeout=timeout)
+            if df is not None and not df.empty:
+                return df, name
+        except Exception:
+            continue
+    return None, None
+
+
+def pick_fallback_price(exchange_snapshots: dict[str, dict[str, Any]]) -> tuple[float | None, str | None]:
+    """Use the first live alt-exchange price when Binance price is missing."""
+    for name, snap in exchange_snapshots.items():
+        price = snap.get("price")
+        if price is not None and float(price) > 0:
+            return float(price), name
+    return None, None
 ```
 
 ---
@@ -5055,6 +5257,7 @@ from src.ui.primitives import (
     brand_footer,
     checklist_panel,
     component_card,
+    empty_state,
     market_signal_hero,
     metric_card,
     metric_card_wrap,
@@ -5147,19 +5350,52 @@ def render_overview_tab(result: AnalysisResult, *, dark: bool) -> None:
 
 def render_trade_setup_tab(result: AnalysisResult, *, dark: bool) -> None:
     setup = result.trade_setup or {}
-    direction = setup.get("direction") or result.recommendation
-    if direction not in ("long", "short"):
-        direction = "long" if result.score >= 50 else "short"
-    style = RECOMMENDATION_STYLE[direction]
+    entry = float(setup.get("entry") or result.price or 0)
 
     _panel_open()
     st.markdown(section_heading("Trade Setup"), unsafe_allow_html=True)
+
+    if entry <= 0:
+        st.markdown(
+            empty_state(
+                title="Market data unavailable",
+                description=(
+                    "Price and candle data could not be loaded from this server. "
+                    "This often happens when Binance blocks cloud hosting IPs. "
+                    "Check Overview → Connected Sources, then redeploy after updating environment variables."
+                ),
+            ),
+            unsafe_allow_html=True,
+        )
+        _panel_close()
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    direction = setup.get("direction") or result.recommendation
+    if direction not in ("long", "short"):
+        if result.recommendation in ("long", "short"):
+            direction = result.recommendation
+        else:
+            direction = "wait"
+    if direction == "wait":
+        st.markdown(
+            empty_state(
+                title="No active trade setup",
+                description="The market signal is WAIT — levels appear when a directional setup is available.",
+            ),
+            unsafe_allow_html=True,
+        )
+        _panel_close()
+        st.markdown("</div>", unsafe_allow_html=True)
+        return
+
+    style = RECOMMENDATION_STYLE[direction]
 
     tp_tone = "long" if direction == "long" else "short"
     sl_tone = "short" if direction == "long" else "long"
     _render_metric_row([
         metric_card("Direction", style["label"], tone=style["tone"]),
-        metric_card("Entry", f"${setup.get('entry', result.price):,.2f}"),
+        metric_card("Entry", f"${entry:,.2f}"),
         metric_card("Stop Loss", f"${setup.get('stop_loss', 0):,.2f}", tone=sl_tone),
         metric_card("TP1", f"${setup.get('tp1', 0):,.2f}", tone=tp_tone),
     ], columns=4)

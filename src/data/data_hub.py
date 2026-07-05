@@ -24,6 +24,7 @@ from src.data.connectors import (
 from src.data.hub_models import HubSnapshot, SourceInfo
 from src.data.news_sentiment import NewsSentimentProvider
 from src.data.onchain import OnChainProvider
+from src.data.fallback_market import fetch_fallback_klines, pick_fallback_price
 from src.indicators.technical import parse_coinglass_heatmap
 
 TRACKED_FIELDS = [
@@ -79,6 +80,7 @@ class BitcoinDataHub:
         self._fetch_binance(snapshot, interval=interval, limit=limit)
         self._fetch_coinglass(snapshot, interval=interval)
         self._fetch_alt_exchanges(snapshot)
+        self._apply_market_fallback(snapshot, interval=interval, limit=limit)
         self._fetch_onchain(snapshot)
         self._fetch_news_sentiment(snapshot)
         self._finalize_snapshot(snapshot)
@@ -265,6 +267,50 @@ class BitcoinDataHub:
             snapshot.exchange_snapshots,
             reference_price=float(snapshot.price or 0),
         )
+
+    def _apply_market_fallback(self, snapshot: HubSnapshot, *, interval: str, limit: int) -> None:
+        """Backfill price/candles from alt exchanges when Binance is blocked on cloud hosts."""
+        needs_price = snapshot.price is None or float(snapshot.price or 0) <= 0
+        candles = snapshot.candles
+        needs_candles = candles is None or (isinstance(candles, pd.DataFrame) and candles.empty)
+        if not needs_price and not needs_candles:
+            return
+
+        if needs_price:
+            price, source = pick_fallback_price(snapshot.exchange_snapshots)
+            if price is not None:
+                snapshot.price = price
+                if source and source not in snapshot.sources:
+                    snapshot.sources.append(source)
+
+        if needs_candles:
+            df, source = fetch_fallback_klines(interval=interval, limit=limit, timeout=float(self.timeout))
+            if df is not None and not df.empty:
+                snapshot.candles = df
+                snapshot.volume = float(df.iloc[-1]["volume"])
+                if snapshot.price is None or float(snapshot.price or 0) <= 0:
+                    snapshot.price = float(df.iloc[-1]["close"])
+                if source:
+                    if source not in snapshot.sources:
+                        snapshot.sources.append(source)
+                    snapshot.source_status[source] = SourceInfo(
+                        name=source,
+                        status="online",
+                        last_updated=datetime.now(timezone.utc),
+                        error="Candle fallback — Binance unreachable from this host",
+                        fields=["price", "candles", "volume"],
+                    )
+
+        if needs_price and snapshot.price is not None and float(snapshot.price) > 0:
+            binance_info = snapshot.source_status.get(self.binance.name)
+            if binance_info and binance_info.status == "offline":
+                snapshot.source_status[self.binance.name] = SourceInfo(
+                    name=self.binance.name,
+                    status="offline",
+                    last_updated=binance_info.last_updated,
+                    error=(binance_info.error or "Unreachable") + " — using alt-exchange fallback",
+                    fields=binance_info.fields,
+                )
 
     def _fetch_onchain(self, snapshot: HubSnapshot) -> None:
         try:
