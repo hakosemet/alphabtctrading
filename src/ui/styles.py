@@ -7,7 +7,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.ui.background import build_background_css, build_bitcoin_fallback_css, build_streamlit_surface_css, ensure_assets_dir
-from src.ui.theme import RADIUS, SHADOW, SPACING, get_palette
+from src.ui.theme import FONT, RADIUS, SHADOW, SPACING, get_palette
 
 # Project root (btc-market-analyzer/) — used for assets/background.jpg
 _DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -31,6 +31,8 @@ def inject_global_styles(
     st.markdown(
         f"""
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
         :root {{
             --bg: {p['bg']};
             --surface: {p['surface']};
@@ -61,10 +63,14 @@ def inject_global_styles(
             --space-xl: {SPACING['xl']};
             --radius: {RADIUS['md']};
             --radius-sm: {RADIUS['sm']};
+            --radius-lg: {RADIUS['lg']};
             --radius-full: {RADIUS['full']};
             --shadow: {SHADOW['sm']};
             --shadow-md: {SHADOW['md']};
-            --font: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            --shadow-lg: {SHADOW['lg']};
+            --font: {FONT['sans']};
+            --font-display: {FONT['display']};
+            --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
         }}
 
         .stApp {{
@@ -79,9 +85,11 @@ def inject_global_styles(
         {surface_css}
 
         .block-container {{
-            padding-top: 0.5rem;
-            padding-bottom: var(--space-lg);
-            max-width: 1080px;
+            padding-top: clamp(0.5rem, 2vw, 1rem);
+            padding-bottom: clamp(1.25rem, 4vw, 2.5rem);
+            padding-left: clamp(0.75rem, 3vw, 1.5rem);
+            padding-right: clamp(0.75rem, 3vw, 1.5rem);
+            max-width: 1240px;
             margin-left: auto;
             margin-right: auto;
         }}
@@ -90,18 +98,30 @@ def inject_global_styles(
             width: 100%;
         }}
 
+        .dashboard-panel {{
+            background: linear-gradient(165deg, rgba(34, 22, 14, 0.82) 0%, rgba(18, 12, 8, 0.94) 100%);
+            border: 1px solid rgba(247, 147, 26, 0.18);
+            border-radius: var(--radius-lg);
+            padding: clamp(1.125rem, 3vw, 1.75rem);
+            margin-bottom: var(--space-md);
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }}
+
         .safety-banner {{
             text-align: center;
-            font-size: 1.25rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
+            font-family: var(--font-display);
+            font-size: clamp(0.875rem, 2.2vw, 1.25rem);
+            font-weight: 800;
+            letter-spacing: 0.12em;
             text-transform: uppercase;
-            color: var(--text-secondary);
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 0.625rem 1rem;
-            margin: 0 0 var(--space-md);
+            color: var(--accent);
+            background: linear-gradient(135deg, rgba(247, 147, 26, 0.12) 0%, rgba(30, 20, 12, 0.75) 100%);
+            border: 1px solid rgba(247, 147, 26, 0.28);
+            border-radius: var(--radius);
+            padding: clamp(0.625rem, 2vw, 0.875rem) clamp(1rem, 3vw, 1.5rem);
+            margin: 0 0 var(--space-lg);
             box-shadow: var(--shadow);
         }}
 
@@ -118,17 +138,19 @@ def inject_global_styles(
             margin-bottom: var(--space-lg);
         }}
         .premium-nav {{
-            background: linear-gradient(165deg, #3D2614 0%, #2A1A0E 40%, #1A1108 100%);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.22),
-                        0 1px 0 rgba(247, 147, 26, 0.12) inset;
-            border-bottom: 1px solid rgba(247, 147, 26, 0.2);
+            background: linear-gradient(165deg, rgba(45, 28, 16, 0.98) 0%, rgba(26, 17, 10, 0.99) 55%, rgba(12, 8, 5, 1) 100%);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35),
+                        0 1px 0 rgba(247, 147, 26, 0.15) inset;
+            border-bottom: 1px solid rgba(247, 147, 26, 0.22);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
         }}
         .premium-nav__inner {{
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: var(--space-lg);
-            max-width: 1080px;
+            max-width: 1160px;
             margin: 0 auto;
             padding: clamp(1rem, 3vw, 1.375rem) clamp(1rem, 4vw, 1.5rem);
             box-sizing: border-box;
@@ -207,11 +229,11 @@ def inject_global_styles(
             display: none;
         }}
         .premium-nav__title {{
-            font-family: var(--font);
-            font-size: clamp(1.125rem, 3vw, 1.625rem);
-            font-weight: 700;
+            font-family: var(--font-display);
+            font-size: clamp(1.25rem, 3.2vw, 1.75rem);
+            font-weight: 800;
             letter-spacing: -0.03em;
-            line-height: 1.2;
+            line-height: 1.15;
             color: #ffffff;
             margin: 0;
             padding: 0;
@@ -311,10 +333,24 @@ def inject_global_styles(
         .section-gap--sm {{ height: var(--space-sm); }}
         .section-heading {{
             font-size: 0.9375rem;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--text);
             margin: 0 0 var(--space-md);
-            letter-spacing: -0.01em;
+            letter-spacing: 0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+        }}
+        .section-heading::before {{
+            content: "";
+            width: 4px;
+            height: 1.1em;
+            border-radius: var(--radius-full);
+            background: linear-gradient(180deg, var(--accent), var(--accent-hover));
+            flex-shrink: 0;
+        }}
+        .section-heading--large::before {{
+            height: 1.35em;
         }}
         .section-heading--tight {{
             margin: 0.15rem 0 0.35rem;
@@ -336,12 +372,13 @@ def inject_global_styles(
         }}
         .chart-tagline {{
             text-align: center;
-            font-size: 1.25rem;
+            font-size: 0.8125rem;
             font-weight: 700;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.16em;
             text-transform: uppercase;
             color: var(--accent);
-            margin: -0.25rem 0 var(--space-md);
+            margin: 0 0 var(--space-md);
+            opacity: 0.9;
         }}
         .chart-bitcoin-logo {{
             display: flex;
@@ -399,20 +436,35 @@ def inject_global_styles(
             width: 100%;
         }}
         .card {{
-            background: var(--surface);
-            border: 1px solid var(--border);
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(160deg, rgba(38, 24, 14, 0.96) 0%, rgba(22, 14, 9, 0.98) 100%);
+            border: 1px solid rgba(247, 147, 26, 0.16);
             border-radius: var(--radius);
-            padding: 1.125rem 1.25rem;
+            padding: clamp(1rem, 2.5vw, 1.25rem) clamp(1rem, 2.5vw, 1.375rem);
             box-sizing: border-box;
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out), border-color 0.25s var(--ease-out);
         }}
         .card--elevated {{
             box-shadow: var(--shadow);
         }}
         .card--elevated:hover {{
             box-shadow: var(--shadow-md);
-            transform: translateY(-1px);
+            transform: translateY(-3px);
+            border-color: rgba(247, 147, 26, 0.32);
         }}
+        .card__accent {{
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.55;
+        }}
+        .card__accent--long {{ background: linear-gradient(90deg, transparent, var(--long), transparent); opacity: 1; }}
+        .card__accent--short {{ background: linear-gradient(90deg, transparent, var(--short), transparent); opacity: 1; }}
+        .card__accent--wait {{ background: linear-gradient(90deg, transparent, var(--wait), transparent); opacity: 1; }}
         .card--metric {{
             min-height: 6.5rem;
             display: flex;
@@ -513,8 +565,51 @@ def inject_global_styles(
         }}
         .signal-hero {{
             text-align: center;
-            margin: 0 0 0.25rem;
-            padding: 0.15rem 0 0;
+            margin: 0 0 var(--space-sm);
+            padding: 0;
+        }}
+        .signal-hero--panel {{
+            background: linear-gradient(145deg, rgba(42, 26, 14, 0.85) 0%, rgba(24, 16, 10, 0.95) 100%);
+            border: 1px solid rgba(247, 147, 26, 0.2);
+            border-radius: var(--radius);
+            padding: 1.25rem 1rem 1rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: var(--space-md);
+        }}
+        .signal-hero__row {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: clamp(1rem, 4vw, 2.5rem);
+            flex-wrap: wrap;
+        }}
+        .signal-hero__stat {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.2rem;
+            min-width: 7rem;
+        }}
+        .signal-hero__stat-label {{
+            font-size: 0.625rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }}
+        .signal-hero__stat-value {{
+            font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }}
+        .signal-hero__stat-suffix {{
+            font-size: 0.55em;
+            font-weight: 600;
+            color: var(--text-muted);
+        }}
+        .signal-hero__stat--score .signal-hero__stat-value {{
+            color: var(--accent);
         }}
         .signal-badge--hero {{
             flex-direction: column;
@@ -691,9 +786,8 @@ def inject_global_styles(
         /* ── Brand footer ── */
         .brand-footer {{
             text-align: center;
-            padding: var(--space-md) 0 var(--space-sm);
-            border-top: 1px solid var(--border);
-            margin-top: var(--space-sm);
+            padding: clamp(1rem, 3vw, 1.5rem);
+            margin-top: var(--space-lg);
         }}
         .brand-footer__disclaimer {{
             font-size: 0.8125rem;
@@ -784,40 +878,105 @@ def inject_global_styles(
 
         /* ── Tabs ── */
         .stTabs [data-baseweb="tab-list"] {{
-            gap: 0.375rem;
-            background: transparent;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.25rem;
+            gap: 0.35rem;
+            background: rgba(18, 12, 8, 0.85);
+            border: 1px solid rgba(247, 147, 26, 0.16);
+            border-radius: var(--radius);
+            padding: 0.4rem;
+            margin-bottom: var(--space-lg);
+            overflow-x: auto;
+            overflow-y: hidden;
+            flex-wrap: nowrap;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }}
+        .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar {{
+            display: none;
         }}
         .stTabs [data-baseweb="tab"] {{
             font-family: var(--font);
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-size: clamp(0.75rem, 2vw, 0.8125rem);
+            font-weight: 600;
+            letter-spacing: 0.03em;
             color: var(--text-secondary);
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+            padding: 0.6rem clamp(0.75rem, 2.5vw, 1.125rem);
+            border-radius: calc(var(--radius-sm) - 2px);
+            border: 1px solid transparent;
+            background: transparent;
+            white-space: nowrap;
+            flex-shrink: 0;
+            min-height: 40px;
+            transition: color 0.2s var(--ease-out), background 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+        }}
+        .stTabs [data-baseweb="tab"]:hover {{
+            color: var(--text);
+            background: rgba(247, 147, 26, 0.1);
         }}
         .stTabs [aria-selected="true"] {{
-            color: var(--accent) !important;
-            background: var(--accent-soft);
+            color: #fff !important;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
+            border-color: rgba(255, 255, 255, 0.14) !important;
+            box-shadow: 0 6px 18px rgba(247, 147, 26, 0.38) !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"] {{
+            padding-top: 0.35rem;
+        }}
+        .stTabs [data-baseweb="tab-highlight"] {{
+            display: none !important;
+        }}
+
+        .chart-frame {{
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid rgba(247, 147, 26, 0.22);
+            box-shadow: var(--shadow-lg);
+            background: #0a0604;
+        }}
+        @media (max-width: 768px) {{
+            .chart-frame {{
+                border-radius: var(--radius);
+            }}
         }}
 
         /* ── Buttons ── */
         .stButton > button {{
-            min-height: 44px !important;
+            min-height: 46px !important;
             border-radius: var(--radius-sm) !important;
             font-family: var(--font) !important;
-            font-weight: 600 !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.02em !important;
+            transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out), background 0.2s var(--ease-out) !important;
+        }}
+        .stButton > button:hover {{
+            transform: translateY(-1px);
         }}
         .stButton > button[kind="primary"],
         .stButton > button[data-testid="baseButton-primary"] {{
-            background: var(--accent) !important;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%) !important;
             color: #fff !important;
             border: none !important;
-            box-shadow: 0 2px 8px rgba(247, 147, 26, 0.35) !important;
+            box-shadow: 0 6px 20px rgba(247, 147, 26, 0.38) !important;
         }}
         .stButton > button[kind="primary"]:hover {{
-            background: var(--accent-hover) !important;
+            background: linear-gradient(135deg, var(--accent-hover) 0%, #ffc04d 100%) !important;
+            box-shadow: 0 8px 24px rgba(247, 147, 26, 0.45) !important;
+        }}
+
+        form[data-testid="stForm"] {{
+            background: linear-gradient(160deg, rgba(34, 22, 14, 0.9) 0%, rgba(18, 12, 8, 0.95) 100%);
+            border: 1px solid rgba(247, 147, 26, 0.2);
+            border-radius: var(--radius-lg);
+            padding: clamp(1.25rem, 4vw, 2rem);
+            box-shadow: var(--shadow-md);
+        }}
+        form[data-testid="stForm"] [data-testid="stTextInput"] input {{
+            background: rgba(8, 6, 4, 0.65) !important;
+            border: 1px solid rgba(247, 147, 26, 0.22) !important;
+            color: var(--text) !important;
+        }}
+        form[data-testid="stForm"] [data-testid="stTextInput"] input:focus {{
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 3px rgba(247, 147, 26, 0.18) !important;
         }}
 
         [data-testid="stExpander"] {{
@@ -858,7 +1017,7 @@ def inject_global_styles(
                 align-items: center;
                 justify-content: space-between;
                 width: 100%;
-                padding-top: 0.25rem;
+                padding-top: 0.5rem;
                 border-top: 1px solid rgba(255, 255, 255, 0.06);
             }}
             .premium-nav__updated {{
@@ -870,11 +1029,45 @@ def inject_global_styles(
             }}
             .rec-panel {{ min-height: auto; }}
             .hub-summary__grid {{ grid-template-columns: repeat(2, minmax(0, 1fr)); }}
-            [data-testid="column"] {{ min-width: calc(50% - 0.5rem) !important; }}
+            .status-grid,
+            .source-status-grid,
+            .risk-panel__grid {{
+                grid-template-columns: 1fr;
+            }}
+            .signal-hero__row {{
+                flex-direction: column;
+                gap: var(--space-md);
+            }}
+            .signal-badge--hero {{
+                max-width: 100%;
+            }}
+            .overview-signal-only {{
+                min-height: 12rem;
+            }}
+            .card--metric {{
+                min-height: 5.5rem;
+            }}
+            [data-testid="column"] {{
+                min-width: calc(50% - 0.5rem) !important;
+            }}
         }}
         @media (max-width: 540px) {{
             [data-testid="column"] {{ min-width: 100% !important; }}
             .hub-summary__grid {{ grid-template-columns: 1fr; }}
+            .chart-bitcoin-logo__svg {{
+                width: 56px;
+                height: 56px;
+            }}
+            .chart-bitcoin-brand__symbol {{
+                font-size: 2.5rem;
+            }}
+            .chart-bitcoin-brand__name {{
+                font-size: 1.5rem;
+            }}
+            .chart-bitcoin-brand__email {{
+                font-size: 0.9375rem;
+                word-break: break-all;
+            }}
         }}
 
         @media (prefers-reduced-motion: reduce) {{
@@ -937,11 +1130,14 @@ def inject_global_styles(
         }}
         .checklist__item {{
             display: flex;
-            gap: 0.5rem;
+            gap: 0.625rem;
             align-items: flex-start;
             font-size: 0.875rem;
-            line-height: 1.45;
+            line-height: 1.5;
             color: var(--text-secondary);
+            padding: 0.5rem 0.625rem;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.02);
         }}
         .checklist--positive .checklist__icon {{ color: var(--long); font-weight: 700; }}
         .checklist--negative .checklist__icon {{ color: var(--wait); font-weight: 700; }}
@@ -1029,11 +1225,13 @@ def inject_global_styles(
         .login-gate {{
             display: flex;
             justify-content: center;
-            margin: 2rem 0 1.25rem;
+            margin: 1rem 0 1.25rem;
         }}
         .login-gate__panel {{
             text-align: center;
+            width: 100%;
             max-width: 28rem;
+            padding: clamp(1.25rem, 4vw, 2rem) !important;
         }}
         .login-gate__title {{
             font-size: 1.35rem;

@@ -9,8 +9,8 @@ BRAND = {
     "author_en": "Ofir Kadosh",
     "since_year": "2026",
     "product": "AlphaBTC",
-    "website": "http://kadoshofirk.com",
-    "website_label": "kadoshofirk.com",
+    "website": "https://alphabtctrading.com",
+    "website_label": "alphabtctrading.com",
 }
 
 
@@ -55,37 +55,48 @@ LIGHT_PALETTE = {
 }
 
 DARK_PALETTE = {
-    "bg": "#1A1108",
-    "surface": "#2A1A0E",
-    "surface_alt": "#3D2614",
-    "border": "#5C3D1E",
-    "text": "#FFF4E6",
-    "text_secondary": "#D4A574",
-    "text_muted": "#9A7349",
+    "bg": "#080604",
+    "surface": "#16100a",
+    "surface_alt": "#22160e",
+    "border": "#3d2a18",
+    "text": "#FFF9F2",
+    "text_secondary": "#E0B88A",
+    "text_muted": "#A67C52",
     "accent": BITCOIN_ORANGE,
     "accent_hover": BITCOIN_ORANGE_LIGHT,
-    "accent_soft": "rgba(247, 147, 26, 0.18)",
+    "accent_soft": "rgba(247, 147, 26, 0.16)",
     "long": "#34d399",
-    "long_bg": "#064e3b",
+    "long_bg": "rgba(6, 78, 59, 0.42)",
     "long_border": "#065f46",
     "short": "#f87171",
-    "short_bg": "#450a0a",
+    "short_bg": "rgba(69, 10, 10, 0.42)",
     "short_border": "#7f1d1d",
     "wait": BITCOIN_GOLD,
-    "wait_bg": "#3D2E0A",
+    "wait_bg": "rgba(61, 46, 10, 0.5)",
     "wait_border": "#78550F",
     "error_bg": "#450a0a",
     "error_border": "#7f1d1d",
     "error_text": "#fecaca",
     "heatmap_mid": BITCOIN_ORANGE,
-    "chart_grid": "#5C3D1E",
+    "chart_grid": "#3d2818",
 }
 
-SPACING = {"xs": "0.5rem", "sm": "0.75rem", "md": "1rem", "lg": "1.5rem", "xl": "2rem"}
-RADIUS = {"sm": "10px", "md": "14px", "full": "999px"}
+SPACING = {
+    "xs": "0.5rem",
+    "sm": "0.875rem",
+    "md": "1.25rem",
+    "lg": "1.75rem",
+    "xl": "2.5rem",
+}
+RADIUS = {"sm": "12px", "md": "16px", "lg": "20px", "full": "999px"}
 SHADOW = {
-    "sm": "0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04)",
-    "md": "0 8px 24px rgba(15, 23, 42, 0.1)",
+    "sm": "0 2px 10px rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.14)",
+    "md": "0 14px 36px rgba(0, 0, 0, 0.32), 0 0 0 1px rgba(247, 147, 26, 0.08)",
+    "lg": "0 24px 56px rgba(0, 0, 0, 0.42), 0 0 0 1px rgba(247, 147, 26, 0.12)",
+}
+FONT = {
+    "sans": "'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    "display": "'Inter', 'Segoe UI', system-ui, sans-serif",
 }
 
 RECOMMENDATION_STYLE: dict[str, dict[str, str]] = {

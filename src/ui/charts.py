@@ -12,7 +12,7 @@ from src.ui.theme import PLOTLY_CONFIG, chart_layout, gauge_steps, get_palette, 
 if TYPE_CHECKING:
     from src.analysis.models import AnalysisResult
 
-_GAUGE_HEIGHT = 340
+_GAUGE_HEIGHT = 360
 _HEATMAP_HEIGHT = 400
 
 
@@ -24,9 +24,9 @@ def render_score_gauge(score: float, *, dark: bool = False) -> None:
             value=score,
             number={
                 "suffix": "/100",
-                "font": {"size": 42, "color": palette["text"], "family": "Inter, system-ui, sans-serif"},
+                "font": {"size": 48, "color": palette["text"], "family": "Inter, system-ui, sans-serif"},
             },
-            title={"text": "Composite Score", "font": {"size": 14, "color": palette["text_secondary"]}},
+            title={"text": "Composite Score", "font": {"size": 15, "color": palette["text_secondary"]}},
             gauge={
                 "axis": {
                     "range": [0, 100],
@@ -87,6 +87,30 @@ def render_heatmap_chart(result: AnalysisResult, *, dark: bool = False) -> None:
         title=dict(text=result.heatmap_source, font=dict(size=12, color=palette["text_muted"])),
         xaxis_title="Intensity",
         yaxis_title="Price (USD)",
+        **chart_layout(palette),
+    )
+    st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)
+
+
+def render_volume_chart(volumes: list[float], *, dark: bool = False) -> None:
+    """Bar chart of recent BTC candle volume."""
+    if not volumes:
+        return
+
+    palette = get_palette(dark)
+    fig = go.Figure(
+        go.Bar(
+            x=list(range(1, len(volumes) + 1)),
+            y=volumes,
+            marker=dict(color=palette["accent"], opacity=0.85),
+            hovertemplate="Bar %{x}<br>Volume: %{y:,.2f} BTC<extra></extra>",
+        )
+    )
+    fig.update_layout(
+        height=280,
+        title=dict(text="BTC Volume (last candles)", font=dict(size=12, color=palette["text_muted"])),
+        xaxis_title="Candle",
+        yaxis_title="Volume (BTC)",
         **chart_layout(palette),
     )
     st.plotly_chart(fig, use_container_width=True, config=PLOTLY_CONFIG)

@@ -6,14 +6,14 @@ from typing import TYPE_CHECKING
 
 import streamlit as st
 
-from src.ui.charts import render_score_gauge
+from src.ui.charts import render_score_gauge, render_volume_chart
 from src.ui.helpers import indicator_rows, signal_plain_language_summary
 from src.ui.primitives import (
     bitcoin_chart_brand,
     bitcoin_chart_logo,
     brand_footer,
+    checklist_panel,
     component_card,
-    empty_state,
     market_signal_hero,
     metric_card,
     metric_card_wrap,
@@ -36,16 +36,28 @@ def _render_metric_row(cards: list[str], columns: int = 4) -> None:
             st.markdown(metric_card_wrap(card), unsafe_allow_html=True)
 
 
+def _panel_open() -> None:
+    st.markdown('<div class="dashboard-panel">', unsafe_allow_html=True)
+
+
+def _panel_close() -> None:
+    st.markdown("</div>", unsafe_allow_html=True)
+
+
 def render_ai_dashboard_tab(result: AnalysisResult, *, dark: bool) -> None:
     interval = st.session_state.get("chart_interval", "1m")
 
-    st.markdown('<div class="ai-dashboard-top">', unsafe_allow_html=True)
+    _panel_open()
     st.markdown(
-        market_signal_hero(result.recommendation, result.confidence),
+        market_signal_hero(
+            result.recommendation,
+            result.confidence,
+            price=result.price,
+            score=result.score,
+        ),
         unsafe_allow_html=True,
     )
     st.markdown(section_heading("Live Chart", tight=True, large=True), unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
     st.markdown(bitcoin_chart_logo(placement="above"), unsafe_allow_html=True)
     st.markdown(
         '<p class="chart-tagline">LETS MAKE MONEY $</p>',
@@ -54,12 +66,14 @@ def render_ai_dashboard_tab(result: AnalysisResult, *, dark: bool) -> None:
     render_tradingview_chart(interval=interval, dark=dark)
     st.markdown(bitcoin_chart_logo(placement="below"), unsafe_allow_html=True)
     st.markdown(bitcoin_chart_brand(), unsafe_allow_html=True)
+    _panel_close()
 
 
 def render_overview_tab(result: AnalysisResult, *, dark: bool) -> None:
     style = RECOMMENDATION_STYLE[result.recommendation]
 
     st.markdown('<div class="overview-tab">', unsafe_allow_html=True)
+    _panel_open()
 
     _render_metric_row([
         metric_card("Price", f"${result.price:,.2f}"),
@@ -76,14 +90,17 @@ def render_overview_tab(result: AnalysisResult, *, dark: bool) -> None:
     with right:
         badge_html = (
             f'<div class="overview-signal-only">'
-            f'<div class="signal-badge signal-badge--{style["tone"]}">{style["label"]}</div>'
-            f"</div>"
+            f'<div class="signal-badge signal-badge--hero signal-badge--{style["tone"]}">'
+            f'<span class="signal-badge__symbol">{style["symbol"]}</span>'
+            f'<span class="signal-badge__label">{style["label"]}</span>'
+            f"</div></div>"
         )
         if hasattr(st, "html"):
             st.html(badge_html)
         else:
             st.markdown(badge_html, unsafe_allow_html=True)
 
+    _panel_close()
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -94,6 +111,7 @@ def render_trade_setup_tab(result: AnalysisResult, *, dark: bool) -> None:
         direction = "long" if result.score >= 50 else "short"
     style = RECOMMENDATION_STYLE[direction]
 
+    _panel_open()
     st.markdown(section_heading("Trade Setup"), unsafe_allow_html=True)
 
     tp_tone = "long" if direction == "long" else "short"
@@ -121,8 +139,33 @@ def render_trade_setup_tab(result: AnalysisResult, *, dark: bool) -> None:
         chart_id="btc-trade-setup-chart",
     )
 
+    if result.reasons_enter or result.reasons_avoid:
+        st.markdown("<div class='section-gap section-gap--sm'></div>", unsafe_allow_html=True)
+        left, right = st.columns(2, gap="large")
+        with left:
+            st.markdown(
+                checklist_panel(
+                    title="Reasons to enter",
+                    items=result.reasons_enter or ["Run analysis for checklist"],
+                    positive=True,
+                ),
+                unsafe_allow_html=True,
+            )
+        with right:
+            st.markdown(
+                checklist_panel(
+                    title="Reasons NOT to enter",
+                    items=result.reasons_avoid or ["Run analysis for warnings"],
+                    positive=False,
+                ),
+                unsafe_allow_html=True,
+            )
+
+    _panel_close()
+
 
 def render_risk_tab(result: AnalysisResult, *, risk_settings: dict[str, float]) -> None:
+    _panel_open()
     st.markdown(section_heading("Risk Overview"), unsafe_allow_html=True)
     st.markdown(risk_enhanced_panel(result.risk_profile), unsafe_allow_html=True)
 
@@ -136,7 +179,7 @@ def render_risk_tab(result: AnalysisResult, *, risk_settings: dict[str, float]) 
 
     st.markdown("<div class='section-gap section-gap--sm'></div>", unsafe_allow_html=True)
     _render_metric_row([
-        metric_card("Sidebar Risk / Trade", f"{max_risk_pct:.2f}%"),
+        metric_card("Risk / Trade", f"{max_risk_pct:.2f}%"),
         metric_card("Risk Budget", f"${max_risk_usd:,.2f}"),
         metric_card("Est. Position Size", f"{position_size:.4f} BTC"),
         metric_card("Position Value", f"${position_value:,.2f}"),
@@ -150,16 +193,18 @@ def render_risk_tab(result: AnalysisResult, *, risk_settings: dict[str, float]) 
         "",
         summary[2][1],
         "",
-        "Position sizing uses sidebar settings. AI engine uses 1% risk baseline for suggestions.",
+        "Position sizing uses default 1% risk baseline for suggestions.",
     ]
     st.markdown(prose_block("\n".join(lines)), unsafe_allow_html=True)
     st.markdown(
         risk_warning_banner(result.recommendation, result.confidence, result.score),
         unsafe_allow_html=True,
     )
+    _panel_close()
 
 
-def render_indicators_tab(result: AnalysisResult) -> None:
+def render_indicators_tab(result: AnalysisResult, *, dark: bool = False) -> None:
+    _panel_open()
     st.markdown(section_heading("Technical Indicators"), unsafe_allow_html=True)
     rows = indicator_rows(result)
     for i in range(0, len(rows), 4):
@@ -170,11 +215,18 @@ def render_indicators_tab(result: AnalysisResult) -> None:
         )
         st.markdown("<div class='section-gap section-gap--sm'></div>", unsafe_allow_html=True)
 
+    volume_history = result.indicators.get("volume_history") or []
+    if volume_history:
+        st.markdown(section_heading("BTC Volume Chart"), unsafe_allow_html=True)
+        render_volume_chart(volume_history, dark=dark)
+        st.markdown("<div class='section-gap section-gap--sm'></div>", unsafe_allow_html=True)
+
     st.markdown(section_heading("Signal Components"), unsafe_allow_html=True)
     cols = st.columns(3, gap="medium")
     for idx, component in enumerate(result.components):
         with cols[idx % 3]:
             st.markdown(component_card(component.name, component.score, component.detail), unsafe_allow_html=True)
+    _panel_close()
 
 
 def render_dashboard(
@@ -201,7 +253,7 @@ def render_dashboard(
     with tabs[3]:
         render_risk_tab(result, risk_settings=settings)
     with tabs[4]:
-        render_indicators_tab(result)
+        render_indicators_tab(result, dark=dark)
 
     st.markdown("<div class='section-gap section-gap--sm'></div>", unsafe_allow_html=True)
     st.markdown(

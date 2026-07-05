@@ -169,12 +169,12 @@ def build_bitcoin_fallback_css(*, dark_mode: bool = True) -> str:
     if dark_mode:
         return """
         .stApp {
-            background-color: #1A1108 !important;
+            background-color: #080604 !important;
             background-image:
-                radial-gradient(ellipse 80% 50% at 50% -15%, rgba(247, 147, 26, 0.22), transparent),
-                radial-gradient(ellipse 55% 40% at 100% 80%, rgba(242, 169, 0, 0.10), transparent),
-                radial-gradient(ellipse 40% 30% at 0% 60%, rgba(247, 147, 26, 0.08), transparent),
-                linear-gradient(180deg, #1A1108 0%, #0f0a06 45%, #1C1209 100%) !important;
+                radial-gradient(ellipse 90% 55% at 50% -20%, rgba(247, 147, 26, 0.26), transparent),
+                radial-gradient(ellipse 50% 45% at 100% 85%, rgba(242, 169, 0, 0.12), transparent),
+                radial-gradient(ellipse 45% 35% at 0% 55%, rgba(247, 147, 26, 0.1), transparent),
+                linear-gradient(180deg, #120c08 0%, #080604 42%, #0a0705 100%) !important;
             background-attachment: fixed;
         }
         """

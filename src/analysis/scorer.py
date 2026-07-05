@@ -14,6 +14,7 @@ from src.indicators.technical import (
     compute_rsi,
     compute_volume_metrics,
     parse_coinglass_heatmap,
+    summarize_volume,
 )
 
 
@@ -155,6 +156,10 @@ def _score_volume(df: pd.DataFrame) -> ComponentScore:
             details.append(f"Low volume ({vol_ratio:.2f}x average)")
         else:
             details.append(f"Normal volume ({vol_ratio:.2f}x average)")
+
+    vol_btc = latest.get("volume")
+    if pd.notna(vol_btc) and vol_btc > 0:
+        details.append(f"Current candle: {float(vol_btc):,.2f} BTC")
 
     if pd.notna(taker_buy):
         if taker_buy >= 0.55:
@@ -458,6 +463,7 @@ class MarketAnalyzer:
         stop_loss, take_profit, rr = _calc_sl_tp(price, recommendation, df, heatmap)
 
         latest = df.iloc[-1]
+        vol_summary = summarize_volume(df, interval=self.interval)
         indicators = {
             "ema_9": float(latest.get("ema_9", 0) or 0),
             "ema_21": float(latest.get("ema_21", 0) or 0),
@@ -469,6 +475,12 @@ class MarketAnalyzer:
             "rsi": float(latest.get("rsi", 0) or 0),
             "volume_ratio": float(latest.get("volume_ratio", 0) or 0),
             "taker_buy_ratio": float(latest.get("taker_buy_ratio", 0) or 0),
+            "volume_btc": vol_summary.get("volume_btc", 0.0),
+            "volume_sma_btc": vol_summary.get("volume_sma_btc", 0.0),
+            "volume_24h_btc": vol_summary.get("volume_24h_btc", 0.0),
+            "quote_volume_usdt": vol_summary.get("quote_volume_usdt", 0.0),
+            "volume_24h_usdt": vol_summary.get("volume_24h_usdt", 0.0),
+            "volume_history": [float(v) for v in df.tail(48)["volume"].tolist()],
             "funding_rate": funding,
             "long_short_ratio": long_short,
             "oi_change_pct": oi_change_pct,

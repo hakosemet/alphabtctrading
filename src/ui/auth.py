@@ -9,7 +9,7 @@ from pathlib import Path
 import streamlit as st
 from dotenv import load_dotenv
 
-from src.ui.primitives import bitcoin_chart_logo
+from src.ui.primitives import bitcoin_chart_logo, login_gate_shell
 
 ROOT = Path(__file__).resolve().parents[2]
 _SESSION_KEY = "authenticated"
@@ -48,8 +48,9 @@ def render_login_gate(*, project_root: Path) -> bool:
         st.error("Dashboard password is not configured. Set DASHBOARD_PASSWORD in your .env file.")
         return False
 
-    _col_left, col_center, _col_right = st.columns([0.5, 3, 0.5])
+    _col_left, col_center, _col_right = st.columns([0.35, 3.3, 0.35])
     with col_center:
+        st.markdown(login_gate_shell(), unsafe_allow_html=True)
         with st.form("dashboard_login", clear_on_submit=False):
             password = st.text_input("Password", type="password", placeholder="Enter password")
             submitted = st.form_submit_button("Enter Dashboard", type="primary", use_container_width=True)

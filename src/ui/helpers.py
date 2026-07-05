@@ -116,6 +116,7 @@ def signal_plain_language_summary(
 def indicator_rows(result: AnalysisResult) -> list[tuple[str, str, str | None]]:
     """Return (label, value, tone) tuples for indicator metric cards."""
     ind = result.indicators
+    vol_ratio = ind.get("volume_ratio")
     rows: list[tuple[str, str, str | None]] = [
         ("RSI (14)", f"{ind.get('rsi', 0):.1f}", _rsi_tone(ind.get("rsi"))),
         ("MACD Histogram", f"{ind.get('macd_hist', 0):.2f}", _macd_tone(ind.get("macd_hist"))),
@@ -123,7 +124,12 @@ def indicator_rows(result: AnalysisResult) -> list[tuple[str, str, str | None]]:
         ("EMA 21", f"${ind.get('ema_21', 0):,.2f}", None),
         ("EMA 50", f"${ind.get('ema_50', 0):,.2f}", None),
         ("EMA 200", f"${ind.get('ema_200', 0):,.2f}", None),
-        ("Volume Ratio", f"{ind.get('volume_ratio', 0):.2f}x", None),
+        ("BTC Volume", _format_btc_volume(ind.get("volume_btc", 0)), _volume_tone(vol_ratio)),
+        ("24h BTC Volume", _format_btc_volume(ind.get("volume_24h_btc", 0)), None),
+        ("Volume USDT", _format_usdt_volume(ind.get("quote_volume_usdt", 0)), None),
+        ("24h Volume USDT", _format_usdt_volume(ind.get("volume_24h_usdt", 0)), None),
+        ("Volume Ratio", f"{float(vol_ratio):.2f}x" if vol_ratio is not None else "—", _volume_tone(vol_ratio)),
+        ("Avg Volume (20)", _format_btc_volume(ind.get("volume_sma_btc", 0)), None),
         ("Taker Buy %", f"{ind.get('taker_buy_ratio', 0):.1%}", None),
     ]
     if ind.get("funding_rate") is not None:
@@ -157,3 +163,33 @@ def _funding_tone(rate: float) -> str | None:
     if rate < -0.0002:
         return "long"
     return "wait"
+
+
+def _volume_tone(ratio: float | None) -> str | None:
+    if ratio is None:
+        return None
+    if ratio >= 1.5:
+        return "long"
+    if ratio <= 0.7:
+        return "short"
+    return "wait"
+
+
+def _format_btc_volume(volume: float | None) -> str:
+    vol = float(volume or 0)
+    if vol >= 1000:
+        return f"{vol:,.0f} BTC"
+    if vol >= 1:
+        return f"{vol:,.2f} BTC"
+    return f"{vol:.4f} BTC"
+
+
+def _format_usdt_volume(volume: float | None) -> str:
+    vol = float(volume or 0)
+    if vol >= 1_000_000_000:
+        return f"${vol / 1e9:.2f}B"
+    if vol >= 1_000_000:
+        return f"${vol / 1e6:.1f}M"
+    if vol >= 1_000:
+        return f"${vol / 1e3:.1f}K"
+    return f"${vol:,.0f}"

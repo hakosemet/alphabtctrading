@@ -30,7 +30,7 @@ def premium_nav(*, last_updated: datetime | None = None) -> str:
                 <div class="premium-nav__left">
                     <div class="premium-nav__logo" aria-label="Bitcoin">
                         <span class="premium-nav__logo-symbol">₿</span>
-                        <span class="premium-nav__logo-text">Bitcoin</span>
+                        <span class="premium-nav__logo-text">BTC</span>
                     </div>
                     <div class="premium-nav__brand">
                         <h1 class="premium-nav__title">{title}</h1>
@@ -89,8 +89,10 @@ def bitcoin_chart_brand() -> str:
 
 def metric_card(label: str, value: str, *, tone: str | None = None) -> str:
     tone_cls = f" card--tone-{tone}" if tone else ""
+    accent = f'<div class="card__accent card__accent--{tone}"></div>' if tone else '<div class="card__accent"></div>'
     return f"""
     <div class="card card--metric card--elevated{tone_cls}">
+        {accent}
         <div class="card__label">{html.escape(label)}</div>
         <div class="card__value">{html.escape(value)}</div>
     </div>
@@ -105,6 +107,7 @@ def component_card(name: str, score: float, detail: str) -> str:
     tone = score_tone(score)
     return f"""
     <div class="card card--component card--elevated card--tone-{tone}">
+        <div class="card__accent card__accent--{tone}"></div>
         <div class="card__label">{html.escape(name)}</div>
         <div class="card__value">{score:.0f}<span class="card__suffix">/100</span></div>
         <div class="progress-track">
@@ -194,16 +197,39 @@ def risk_warning_banner(
     """
 
 
-def market_signal_hero(recommendation: str, confidence: str) -> str:
+def market_signal_hero(
+    recommendation: str,
+    confidence: str,
+    *,
+    price: float | None = None,
+    score: float | None = None,
+) -> str:
     """Large LONG / SHORT / WAIT signal for the AI Dashboard."""
     style = RECOMMENDATION_STYLE.get(recommendation, RECOMMENDATION_STYLE["wait"])
     pct = confidence_percent(confidence)
 
+    price_html = ""
+    if price is not None:
+        price_html = f'<div class="signal-hero__stat"><span class="signal-hero__stat-label">BTC Price</span><span class="signal-hero__stat-value">${price:,.2f}</span></div>'
+
+    score_html = ""
+    if score is not None:
+        score_html = (
+            f'<div class="signal-hero__stat signal-hero__stat--score">'
+            f'<span class="signal-hero__stat-label">Score</span>'
+            f'<span class="signal-hero__stat-value">{score:.0f}<span class="signal-hero__stat-suffix">/100</span></span>'
+            f"</div>"
+        )
+
     return f"""
-    <div class="signal-hero" role="status" aria-label="Market signal {html.escape(style['label'])}">
-        <div class="signal-badge signal-badge--hero signal-badge--{style['tone']}">
-            <span class="signal-badge__symbol" aria-hidden="true">{style['symbol']}</span>
-            <span class="signal-badge__label">{style['label']}</span>
+    <div class="signal-hero signal-hero--panel" role="status" aria-label="Market signal {html.escape(style['label'])}">
+        <div class="signal-hero__row">
+            {price_html}
+            <div class="signal-badge signal-badge--hero signal-badge--{style['tone']}">
+                <span class="signal-badge__symbol" aria-hidden="true">{style['symbol']}</span>
+                <span class="signal-badge__label">{style['label']}</span>
+            </div>
+            {score_html}
         </div>
         <p class="signal-hero__confidence">
             Signal strength: {html.escape(confidence)} · {pct}%
@@ -247,9 +273,23 @@ def prose_block(text: str) -> str:
     return f'<div class="card card--prose card--elevated">{html.escape(text)}</div>'
 
 
+def login_gate_shell(*, title: str = "AlphaBTC Access", subtitle: str = "Enter your password to continue") -> str:
+    return f"""
+    <div class="login-gate">
+        <div class="login-gate__panel card card--elevated">
+            <div class="card__accent"></div>
+            {bitcoin_chart_logo(placement="above")}
+            <h2 class="login-gate__title">{html.escape(title)}</h2>
+            <p class="login-gate__subtitle">{html.escape(subtitle)}</p>
+        </div>
+    </div>
+    """
+
+
 def brand_footer(*, sources: str) -> str:
     return f"""
-    <footer class="brand-footer">
+    <footer class="brand-footer card card--elevated">
+        <div class="card__accent"></div>
         <p class="brand-footer__disclaimer">Educational tool only. Not financial advice.</p>
         <p class="brand-footer__meta">
             Built by {html.escape(BRAND['author_en'])} · {html.escape(BRAND['website_label'])} · v{html.escape(APP_VERSION)}

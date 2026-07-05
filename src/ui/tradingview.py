@@ -24,12 +24,13 @@ def render_tradingview_chart(
     *,
     symbol: str = "BINANCE:BTCUSDT",
     interval: str = "1m",
-    height: int = 520,
+    height: int | None = None,
     dark: bool = True,
     refresh_seconds: int = CHART_REFRESH_SECONDS,
     chart_id: str = "btc-live-chart",
 ) -> None:
     """Embed a live TradingView chart that reloads on a fixed interval."""
+    chart_height = height if height is not None else 520
     tv_interval = INTERVAL_MAP.get(interval, "60")
     theme = "dark" if dark else "light"
     safe_chart_id = html.escape(chart_id, quote=True)
@@ -48,7 +49,7 @@ def render_tradingview_chart(
 
     components.html(
         f"""
-        <div style="width:100%;height:{height}px;overflow:hidden;border-radius:10px;">
+        <div class="chart-frame" style="width:100%;height:{chart_height}px;overflow:hidden;">
             <iframe
                 id="{safe_chart_id}"
                 src="{safe_src}"
@@ -70,6 +71,6 @@ def render_tradingview_chart(
             }})();
         </script>
         """,
-        height=height + 8,
+        height=chart_height + 8,
         scrolling=False,
     )

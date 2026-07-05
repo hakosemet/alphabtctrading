@@ -44,12 +44,47 @@ def compute_rsi(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
     return out
 
 
+INTERVAL_MINUTES: dict[str, int] = {
+    "1m": 1,
+    "3m": 3,
+    "5m": 5,
+    "15m": 15,
+    "30m": 30,
+    "1h": 60,
+    "4h": 240,
+    "1d": 1440,
+}
+
+
 def compute_volume_metrics(df: pd.DataFrame, lookback: int = 20) -> pd.DataFrame:
     out = df.copy()
     out["volume_sma"] = out["volume"].rolling(lookback).mean()
     out["volume_ratio"] = out["volume"] / out["volume_sma"]
     out["taker_buy_ratio"] = out["taker_buy_base"] / out["volume"].replace(0, np.nan)
     return out
+
+
+def summarize_volume(df: pd.DataFrame, *, interval: str = "1h") -> dict[str, float]:
+    """Absolute BTC / USDT volume stats for the indicators panel."""
+    if df is None or df.empty:
+        return {}
+
+    latest = df.iloc[-1]
+    minutes = INTERVAL_MINUTES.get(interval, 60)
+    bars_24h = max(1, int((24 * 60) / minutes))
+    window = df.tail(bars_24h)
+
+    quote_col = "quote_volume" if "quote_volume" in df.columns else None
+    volume_24h_usdt = float(window[quote_col].sum()) if quote_col else 0.0
+    quote_volume = float(latest[quote_col]) if quote_col and pd.notna(latest.get(quote_col)) else 0.0
+
+    return {
+        "volume_btc": float(latest.get("volume") or 0),
+        "volume_sma_btc": float(latest.get("volume_sma") or 0),
+        "volume_24h_btc": float(window["volume"].sum()),
+        "quote_volume_usdt": quote_volume,
+        "volume_24h_usdt": volume_24h_usdt,
+    }
 
 
 def build_volume_heatmap(
