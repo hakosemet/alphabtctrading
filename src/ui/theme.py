@@ -11,6 +11,7 @@ BRAND = {
     "product": "AlphaBTC",
     "website": "https://alphabtctrading.com",
     "website_label": "alphabtctrading.com",
+    "contact_email": "AlphabtcTool@outlook.com",
 }
 
 

@@ -1,6 +1,6 @@
 # Ofir Kadosh Bitcoin AI Dashboard — Full Project (Single File Backup)
 
-Generated: 2026-07-05 15:46:39 UTC
+Generated: 2026-07-05 15:48:13 UTC
 Root: `C:\Users\NORIS\btc-market-analyzer`
 Files: 61
 
@@ -5877,7 +5877,7 @@ def bitcoin_chart_logo(*, placement: str = "below") -> str:
 
 def bitcoin_chart_brand() -> str:
     """Large Bitcoin symbol and name shown below the chart logo."""
-    email = html.escape("AlphabtcTool@outlook.com")
+    email = html.escape(BRAND["contact_email"])
     return f"""
     <div class="chart-bitcoin-brand" aria-label="Bitcoin">
         <div class="chart-bitcoin-brand__symbol">₿</div>
@@ -6090,7 +6090,7 @@ def login_gate_shell() -> str:
 
 def login_purchase_panel() -> str:
     """Purchase instructions shown on the login screen."""
-    email = html.escape("AlphabtcTool@outlook.com")
+    email = html.escape(BRAND["contact_email"])
     wallet = html.escape("1ME6L23cLzYu3iAEEjdwDVSE578P2mssDW")
     return f"""
     <div class="login-purchase card card--elevated">
@@ -7862,6 +7862,7 @@ BRAND = {
     "product": "AlphaBTC",
     "website": "https://alphabtctrading.com",
     "website_label": "alphabtctrading.com",
+    "contact_email": "AlphabtcTool@outlook.com",
 }
 
 
