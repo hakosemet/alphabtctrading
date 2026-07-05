@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+load_dotenv(ROOT / ".env", override=True)
+
 from src.ui.performance import run_cached_market_analysis
 from src.ui.auth import render_login_gate
 from src.ui.components import (
@@ -23,8 +25,11 @@ from src.ui.components import (
 from src.ui.sidebar import AUTO_REFRESH_SECONDS, render_sidebar
 from src.ui.styles import inject_global_styles
 from src.ui.time_utils import normalize_last_updated
-
-load_dotenv(ROOT / ".env", override=True)
+from src.analytics.tiktok_pixel import (
+    handle_payment_success_query,
+    inject_tiktok_pixel,
+    track_view_content,
+)
 
 st.set_page_config(
     page_title="AlphaBTC",
@@ -87,10 +92,20 @@ def _auto_refresh(symbol: str, interval: str, api_key: str) -> None:
 
 
 def main() -> None:
+    # TikTok — CompletePayment when user lands on ?payment=success (or similar)
+    handle_payment_success_query()
+
     inject_global_styles(dark_mode=True, project_root=ROOT, hide_sidebar=True)
 
     if not render_login_gate(project_root=ROOT):
+        # TikTok Pixel — PageView + InitiateCheckout on login / purchase panel
+        inject_tiktok_pixel(page_view=True, attach_purchase_listeners=True)
         return
+
+    # TikTok event — ViewContent: authenticated dashboard
+    track_view_content(content_category="dashboard")
+    # TikTok Pixel — PageView on dashboard load
+    inject_tiktok_pixel(page_view=True)
 
     sidebar = render_sidebar()
     render_header_bar(_get_last_updated())

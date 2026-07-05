@@ -10,6 +10,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from src.ui.primitives import bitcoin_chart_logo, login_purchase_panel
+from src.analytics.tiktok_pixel import track_view_content
 
 ROOT = Path(__file__).resolve().parents[2]
 _SESSION_KEY = "authenticated"
@@ -49,6 +50,9 @@ def render_login_gate(*, project_root: Path) -> bool:
     _col_left, col_center, _col_right = st.columns([0.35, 3.3, 0.35])
     with col_center:
         _render_login_logo()
+
+        # TikTok event — ViewContent: login / purchase panel visible
+        track_view_content(content_category="login")
 
         with st.form("dashboard_login", clear_on_submit=False):
             password = st.text_input("Password", type="password", placeholder="Enter password")

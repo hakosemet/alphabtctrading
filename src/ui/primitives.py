@@ -302,13 +302,13 @@ def login_purchase_panel() -> str:
         <h3 class="login-purchase__title">Purchase Alpha BTC Trading Tool</h3>
         <p class="login-purchase__price">Price: <strong>$99 USD</strong></p>
         <p class="login-purchase__line">Payment Method: <strong>Bitcoin (BTC) only.</strong></p>
-        <div class="login-purchase__wallet-block">
+        <div class="login-purchase__wallet-block" data-tiktok-initiate-checkout>
             <span class="login-purchase__label">BTC Wallet:</span>
             <span class="login-purchase__wallet">{wallet}</span>
         </div>
         <p class="login-purchase__line">
             After payment, send a transaction screenshot to
-            <a class="login-purchase__email" href="mailto:{email}">{email}</a>.
+            <a class="login-purchase__email" href="mailto:{email}" data-tiktok-initiate-checkout>{email}</a>.
         </p>
         <p class="login-purchase__note">
             Your access credentials will be sent within 12 hours after payment verification.
